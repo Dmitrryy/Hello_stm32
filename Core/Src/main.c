@@ -29,6 +29,9 @@
 #include "stm32f0xx_ll_gpio.h"
 #include "stm32f0xx_ll_exti.h"
 
+
+#include "../game/game.h"
+
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -49,7 +52,11 @@
 
 /* USER CODE BEGIN PV */
 
-int counter_top = 7777;
+volatile uint64_t counter_top = 0;
+
+volatile uint64_t display_num = 0;
+
+volatile float    time = 0;
 
 #define A_INDICATOR_ID_PORT 11
 #define B_INDICATOR_ID_PORT 12
@@ -67,38 +74,39 @@ int counter_top = 7777;
 
 
 
-#define LED0_PORT GPIOA, LL_GPIO_PIN_1
-#define LED1_PORT GPIOA, LL_GPIO_PIN_2
-#define LED2_PORT GPIOA, LL_GPIO_PIN_3
-#define LED3_PORT GPIOF, LL_GPIO_PIN_4
-#define LED4_PORT GPIOF, LL_GPIO_PIN_5
-#define LED5_PORT GPIOA, LL_GPIO_PIN_4
-#define LED6_PORT GPIOA, LL_GPIO_PIN_5
-#define LED7_PORT GPIOA, LL_GPIO_PIN_6
-#define LED8_PORT GPIOA, LL_GPIO_PIN_7
-#define LED9_PORT GPIOC, LL_GPIO_PIN_4
+#define LIGHT_LINE_LD0_ID_PORT 50
+#define LIGHT_LINE_LD1_ID_PORT 51
+#define LIGHT_LINE_LD2_ID_PORT 52
+#define LIGHT_LINE_LD3_ID_PORT 53
+#define LIGHT_LINE_LD4_ID_PORT 54
+#define LIGHT_LINE_LD5_ID_PORT 55
+#define LIGHT_LINE_LD6_ID_PORT 56
+#define LIGHT_LINE_LD7_ID_PORT 57
+#define LIGHT_LINE_LD8_ID_PORT 58
+#define LIGHT_LINE_LD9_ID_PORT 59
 
 
-#define LED0_ON() LL_GPIO_SetOutputPin(LED0_PORT)
-#define LED0_OFF() LL_GPIO_ResetOutputPin(LED0_PORT)
-#define LED1_ON() LL_GPIO_SetOutputPin(LED1_PORT)
-#define LED1_OFF() LL_GPIO_ResetOutputPin(LED1_PORT)
-#define LED2_ON() LL_GPIO_SetOutputPin(LED2_PORT)
-#define LED2_OFF() LL_GPIO_ResetOutputPin(LED2_PORT)
-#define LED3_ON() LL_GPIO_SetOutputPin(LED3_PORT)
-#define LED3_OFF() LL_GPIO_ResetOutputPin(LED3_PORT)
-#define LED4_ON() LL_GPIO_SetOutputPin(LED4_PORT)
-#define LED4_OFF() LL_GPIO_ResetOutputPin(LED4_PORT)
-#define LED5_ON() LL_GPIO_SetOutputPin(LED5_PORT)
-#define LED5_OFF() LL_GPIO_ResetOutputPin(LED5_PORT)
-#define LED6_ON() LL_GPIO_SetOutputPin(LED6_PORT)
-#define LED6_OFF() LL_GPIO_ResetOutputPin(LED6_PORT)
-#define LED7_ON() LL_GPIO_SetOutputPin(LED7_PORT)
-#define LED7_OFF() LL_GPIO_ResetOutputPin(LED7_PORT)
-#define LED8_ON() LL_GPIO_SetOutputPin(LED8_PORT)
-#define LED8_OFF() LL_GPIO_ResetOutputPin(LED8_PORT)
-#define LED9_ON() LL_GPIO_SetOutputPin(LED9_PORT)
-#define LED9_OFF() LL_GPIO_ResetOutputPin(LED9_PORT)
+
+#define LDM8x8_LD_X_7 100
+#define LDM8x8_LD_X_6 101
+#define LDM8x8_LD_X_5 102
+#define LDM8x8_LD_X_4 103
+#define LDM8x8_LD_X_3 104
+#define LDM8x8_LD_X_2 105
+#define LDM8x8_LD_X_1 106
+#define LDM8x8_LD_X_0 107
+
+#define LDM8x8_LD_Y_7 110
+#define LDM8x8_LD_Y_6 111
+#define LDM8x8_LD_Y_5 112
+#define LDM8x8_LD_Y_4 113
+#define LDM8x8_LD_Y_3 114
+#define LDM8x8_LD_Y_2 115
+#define LDM8x8_LD_Y_1 116
+#define LDM8x8_LD_Y_0 117
+
+
+
 
 /* USER CODE END PV */
 
@@ -108,9 +116,13 @@ static void MX_GPIO_Init(void);
 /* USER CODE BEGIN PFP */
 
 void switchOutPortMood(uint32_t id, int mood);
-void indicatorDisplay(uint16_t num);
+void indicatorDisplay(uint64_t num);
 
-void EXTI0_1_IRQHandler(void);
+void setFillLightLine(uint16_t percent);
+
+void ldm8x8IndicateLine(int coord_y, const int *line);
+void ldm8x8IndicateMatrix(int matrix[8][8]);
+
 
 /* USER CODE END PFP */
 
@@ -147,206 +159,33 @@ int main(void)
 
   /* USER CODE BEGIN SysInit */
 
+  SysTick_Config(SystemCoreClock / 1000);
+
   /* USER CODE END SysInit */
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   /* USER CODE BEGIN 2 */
 
-    NVIC_EnableIRQ(EXTI0_1_IRQn);
-    NVIC_SetPriority(EXTI0_1_IRQn, 0);
 
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
+  ezgStart();
+
+  time = 0;
+  float storeTime = 0;
   while (1)
   {
+      float dt = time - storeTime;
+      storeTime = time;
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-    indicatorDisplay(counter_top);
+    ezgUpdate(dt);
 
-
-    /*  {
-          LED0_ON();
-          LL_mDelay(100);
-          LED0_OFF();
-          LED1_ON();
-          LL_mDelay(100);
-          LED1_OFF();
-          LED2_ON();
-          LL_mDelay(100);
-          LED2_OFF();
-          LED3_ON();
-          LL_mDelay(100);
-          LED3_OFF();
-          LED4_ON();
-          LL_mDelay(100);
-          LED4_OFF();
-          LED5_ON();
-          LL_mDelay(100);
-          LED5_OFF();
-          LED6_ON();
-          LL_mDelay(100);
-          LED6_OFF();
-          LED7_ON();
-          LL_mDelay(100);
-          LED7_OFF();
-          LED8_ON();
-          LL_mDelay(100);
-          LED8_OFF();
-          LED9_ON();
-          LL_mDelay(100);
-
-          LED0_ON();
-          LL_mDelay(100);
-          LED0_OFF();
-          LED1_ON();
-          LL_mDelay(100);
-          LED1_OFF();
-          LED2_ON();
-          LL_mDelay(100);
-          LED2_OFF();
-          LED3_ON();
-          LL_mDelay(100);
-          LED3_OFF();
-          LED4_ON();
-          LL_mDelay(100);
-          LED4_OFF();
-          LED5_ON();
-          LL_mDelay(100);
-          LED5_OFF();
-          LED6_ON();
-          LL_mDelay(100);
-          LED6_OFF();
-          LED7_ON();
-          LL_mDelay(100);
-          LED7_OFF();
-          LED8_ON();
-          LL_mDelay(100);
-
-          LED0_ON();
-          LL_mDelay(100);
-          LED0_OFF();
-          LED1_ON();
-          LL_mDelay(100);
-          LED1_OFF();
-          LED2_ON();
-          LL_mDelay(100);
-          LED2_OFF();
-          LED3_ON();
-          LL_mDelay(100);
-          LED3_OFF();
-          LED4_ON();
-          LL_mDelay(100);
-          LED4_OFF();
-          LED5_ON();
-          LL_mDelay(100);
-          LED5_OFF();
-          LED6_ON();
-          LL_mDelay(100);
-          LED6_OFF();
-          LED7_ON();
-          LL_mDelay(100);
-
-          LED0_ON();
-          LL_mDelay(100);
-          LED0_OFF();
-          LED1_ON();
-          LL_mDelay(100);
-          LED1_OFF();
-          LED2_ON();
-          LL_mDelay(100);
-          LED2_OFF();
-          LED3_ON();
-          LL_mDelay(100);
-          LED3_OFF();
-          LED4_ON();
-          LL_mDelay(100);
-          LED4_OFF();
-          LED5_ON();
-          LL_mDelay(100);
-          LED5_OFF();
-          LED6_ON();
-          LL_mDelay(100);
-
-          LED0_ON();
-          LL_mDelay(100);
-          LED0_OFF();
-          LED1_ON();
-          LL_mDelay(100);
-          LED1_OFF();
-          LED2_ON();
-          LL_mDelay(100);
-          LED2_OFF();
-          LED3_ON();
-          LL_mDelay(100);
-          LED3_OFF();
-          LED4_ON();
-          LL_mDelay(100);
-          LED4_OFF();
-          LED5_ON();
-          LL_mDelay(100);
-
-          LED0_ON();
-          LL_mDelay(100);
-          LED0_OFF();
-          LED1_ON();
-          LL_mDelay(100);
-          LED1_OFF();
-          LED2_ON();
-          LL_mDelay(100);
-          LED2_OFF();
-          LED3_ON();
-          LL_mDelay(100);
-          LED3_OFF();
-          LED4_ON();
-          LL_mDelay(100);
-
-          LED0_ON();
-          LL_mDelay(100);
-          LED0_OFF();
-          LED1_ON();
-          LL_mDelay(100);
-          LED1_OFF();
-          LED2_ON();
-          LL_mDelay(100);
-          LED2_OFF();
-          LED3_ON();
-          LL_mDelay(100);
-
-          LED0_ON();
-          LL_mDelay(100);
-          LED0_OFF();
-          LED1_ON();
-          LL_mDelay(100);
-          LED1_OFF();
-          LED2_ON();
-          LL_mDelay(100);
-
-          LED0_ON();
-          LL_mDelay(100);
-          LED0_OFF();
-          LED1_ON();
-          LL_mDelay(100);
-
-          LED0_ON();
-          LL_mDelay(100);
-
-          LED0_OFF();
-          LED1_OFF();
-          LED2_OFF();
-          LED3_OFF();
-          LED4_OFF();
-          LED5_OFF();
-          LED6_OFF();
-          LED7_OFF();
-          LED8_OFF();
-          LED9_OFF();
-          LL_mDelay(100);
-      }*/
-
+    ldm8x8IndicateMatrix(ezgGetDisplayMatrix());
 
   }
   /* USER CODE END 3 */
@@ -450,31 +289,16 @@ static void MX_GPIO_Init(void)
   LL_GPIO_ResetOutputPin(GPIOB, LL_GPIO_PIN_2);
 
   /**/
-  LL_GPIO_ResetOutputPin(GPIOB, LL_GPIO_PIN_15);
+  LL_GPIO_ResetOutputPin(GPIOB, LL_GPIO_PIN_10);
 
   /**/
-  LL_GPIO_ResetOutputPin(GPIOC, LL_GPIO_PIN_6);
-
-  /**/
-  LL_GPIO_ResetOutputPin(GPIOC, LL_GPIO_PIN_7);
+  LL_GPIO_ResetOutputPin(GPIOB, LL_GPIO_PIN_11);
 
   /**/
   LL_GPIO_ResetOutputPin(LD4_GPIO_Port, LD4_Pin);
 
   /**/
   LL_GPIO_ResetOutputPin(LD3_GPIO_Port, LD3_Pin);
-
-  /**/
-  LL_GPIO_ResetOutputPin(GPIOA, LL_GPIO_PIN_9);
-
-  /**/
-  LL_GPIO_ResetOutputPin(GPIOA, LL_GPIO_PIN_10);
-
-  /**/
-  LL_GPIO_ResetOutputPin(GPIOA, LL_GPIO_PIN_11);
-
-  /**/
-  LL_GPIO_ResetOutputPin(GPIOA, LL_GPIO_PIN_12);
 
   /**/
   LL_SYSCFG_SetEXTISource(LL_SYSCFG_EXTI_PORTA, LL_SYSCFG_EXTI_LINE0);
@@ -488,7 +312,7 @@ static void MX_GPIO_Init(void)
   /**/
   EXTI_InitStruct.Line_0_31 = LL_EXTI_LINE_0;
   EXTI_InitStruct.LineCommand = ENABLE;
-  EXTI_InitStruct.Mode = LL_EXTI_MODE_EVENT;
+  EXTI_InitStruct.Mode = LL_EXTI_MODE_IT;
   EXTI_InitStruct.Trigger = LL_EXTI_TRIGGER_RISING;
   LL_EXTI_Init(&EXTI_InitStruct);
 
@@ -605,7 +429,7 @@ static void MX_GPIO_Init(void)
   LL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
   /**/
-  GPIO_InitStruct.Pin = LL_GPIO_PIN_15;
+  GPIO_InitStruct.Pin = LL_GPIO_PIN_10;
   GPIO_InitStruct.Mode = LL_GPIO_MODE_OUTPUT;
   GPIO_InitStruct.Speed = LL_GPIO_SPEED_FREQ_LOW;
   GPIO_InitStruct.OutputType = LL_GPIO_OUTPUT_PUSHPULL;
@@ -613,20 +437,12 @@ static void MX_GPIO_Init(void)
   LL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
   /**/
-  GPIO_InitStruct.Pin = LL_GPIO_PIN_6;
+  GPIO_InitStruct.Pin = LL_GPIO_PIN_11;
   GPIO_InitStruct.Mode = LL_GPIO_MODE_OUTPUT;
   GPIO_InitStruct.Speed = LL_GPIO_SPEED_FREQ_LOW;
   GPIO_InitStruct.OutputType = LL_GPIO_OUTPUT_PUSHPULL;
   GPIO_InitStruct.Pull = LL_GPIO_PULL_NO;
-  LL_GPIO_Init(GPIOC, &GPIO_InitStruct);
-
-  /**/
-  GPIO_InitStruct.Pin = LL_GPIO_PIN_7;
-  GPIO_InitStruct.Mode = LL_GPIO_MODE_OUTPUT;
-  GPIO_InitStruct.Speed = LL_GPIO_SPEED_FREQ_LOW;
-  GPIO_InitStruct.OutputType = LL_GPIO_OUTPUT_PUSHPULL;
-  GPIO_InitStruct.Pull = LL_GPIO_PULL_NO;
-  LL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+  LL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
   /**/
   GPIO_InitStruct.Pin = LD4_Pin;
@@ -644,47 +460,18 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = LL_GPIO_PULL_NO;
   LL_GPIO_Init(LD3_GPIO_Port, &GPIO_InitStruct);
 
-  /**/
-  GPIO_InitStruct.Pin = LL_GPIO_PIN_9;
-  GPIO_InitStruct.Mode = LL_GPIO_MODE_OUTPUT;
-  GPIO_InitStruct.Speed = LL_GPIO_SPEED_FREQ_LOW;
-  GPIO_InitStruct.OutputType = LL_GPIO_OUTPUT_PUSHPULL;
-  GPIO_InitStruct.Pull = LL_GPIO_PULL_NO;
-  LL_GPIO_Init(GPIOA, &GPIO_InitStruct);
-
-  /**/
-  GPIO_InitStruct.Pin = LL_GPIO_PIN_10;
-  GPIO_InitStruct.Mode = LL_GPIO_MODE_OUTPUT;
-  GPIO_InitStruct.Speed = LL_GPIO_SPEED_FREQ_LOW;
-  GPIO_InitStruct.OutputType = LL_GPIO_OUTPUT_PUSHPULL;
-  GPIO_InitStruct.Pull = LL_GPIO_PULL_NO;
-  LL_GPIO_Init(GPIOA, &GPIO_InitStruct);
-
-  /**/
-  GPIO_InitStruct.Pin = LL_GPIO_PIN_11;
-  GPIO_InitStruct.Mode = LL_GPIO_MODE_OUTPUT;
-  GPIO_InitStruct.Speed = LL_GPIO_SPEED_FREQ_LOW;
-  GPIO_InitStruct.OutputType = LL_GPIO_OUTPUT_PUSHPULL;
-  GPIO_InitStruct.Pull = LL_GPIO_PULL_NO;
-  LL_GPIO_Init(GPIOA, &GPIO_InitStruct);
-
-  /**/
-  GPIO_InitStruct.Pin = LL_GPIO_PIN_12;
-  GPIO_InitStruct.Mode = LL_GPIO_MODE_OUTPUT;
-  GPIO_InitStruct.Speed = LL_GPIO_SPEED_FREQ_LOW;
-  GPIO_InitStruct.OutputType = LL_GPIO_OUTPUT_PUSHPULL;
-  GPIO_InitStruct.Pull = LL_GPIO_PULL_NO;
-  LL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+  /* EXTI interrupt init*/
+  NVIC_SetPriority(EXTI0_1_IRQn, 0);
+  NVIC_EnableIRQ(EXTI0_1_IRQn);
 
 }
 
 /* USER CODE BEGIN 4 */
 
 
-void indicatorDisplay(uint16_t num)
+void indicatorDisplay(uint64_t num)
 {
     /*
- * 026
        4-разрядный 7-сегментный индикатор
                 1  A  F 2  3  B
  ______________|__|__|__|__|__|__________
@@ -697,24 +484,23 @@ void indicatorDisplay(uint16_t num)
                 |  |  |  |  |  |
                 E  D dp  C  G  4
 
-Соответствие отображаемого знака данным порта
-общий анод
-__________________________________________________
-     |   двоичный вид по сегментам   |            |
-Цифра|dp | G | F | E | D | C | B | A | Десятичный |
------|---|---|---|---|---|---|---|---|------------|
-  0  | 1 | 1 | 0 | 0 | 0 | 0 | 0 | 0 |    192     |
-  1  | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 1 |    249     |
-  2  | 1 | 0 | 1 | 0 | 0 | 1 | 0 | 0 |    164     |
-  3  | 1 | 0 | 1 | 1 | 0 | 0 | 0 | 0 |    176     |
-  4  | 1 | 0 | 0 | 1 | 1 | 0 | 0 | 1 |    153     |
-  5  | 1 | 0 | 0 | 1 | 0 | 0 | 1 | 0 |    146     |
-  6  | 1 | 0 | 0 | 0 | 0 | 0 | 1 | 0 |    130     |
-  7  | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 |    248     |
-  8  | 1 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |    128     |
-  9  | 1 | 0 | 0 | 1 | 0 | 0 | 0 | 0 |    144     |
- dp  | 0 | 1 | 1 | 1 | 1 | 1 | 1 | 1 |    127     |
------*---*---*---*---*---*---*---*---*------------*
+Соответствие отображаемого знака данным порта общий анод
+______________________________________
+     |   двоичный вид по сегментам   |
+Цифра|dp | A | B | C | D | E | F | G |
+-----|---|---|---|---|---|---|---|---|
+  0  | 0 | 1 | 1 | 1 | 1 | 1 | 1 | 0 |
+  1  | 0 | 1 | 1 | 0 | 0 | 0 | 0 | 0 |
+  2  | 0 | 1 | 1 | 0 | 1 | 1 | 0 | 1 |
+  3  | 0 | 1 | 1 | 1 | 1 | 0 | 0 | 1 |
+  4  | 0 | 0 | 1 | 1 | 0 | 0 | 1 | 1 |
+  5  | 0 | 1 | 0 | 1 | 1 | 0 | 1 | 1 |
+  6  | 0 | 1 | 0 | 1 | 1 | 1 | 1 | 1 |
+  7  | 0 | 1 | 1 | 1 | 0 | 0 | 0 | 0 |
+  8  | 0 | 1 | 1 | 1 | 1 | 1 | 1 | 1 |
+  9  | 0 | 1 | 1 | 1 | 0 | 0 | 1 | 1 |
+ dp  | 1 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+-----*---*---*---*---*---*---*---*---*
 
  */
 
@@ -796,6 +582,57 @@ __________________________________________________
 
 
 
+void ldm8x8IndicateMatrix(int matrix[8][8])
+{
+    const uint16_t timeLight = 1;
+
+    for(int i = 0; i < 8; ++i)
+    {
+        ldm8x8IndicateLine(i, matrix[i]);
+        LL_mDelay(timeLight);
+    }
+}
+
+void ldm8x8IndicateLine(int coord_y, const int *line)
+{
+    switchOutPortMood(LDM8x8_LD_Y_0, 0);
+    switchOutPortMood(LDM8x8_LD_Y_1, 0);
+    switchOutPortMood(LDM8x8_LD_Y_2, 0);
+    switchOutPortMood(LDM8x8_LD_Y_3, 0);
+    switchOutPortMood(LDM8x8_LD_Y_4, 0);
+    switchOutPortMood(LDM8x8_LD_Y_5, 0);
+    switchOutPortMood(LDM8x8_LD_Y_6, 0);
+    switchOutPortMood(LDM8x8_LD_Y_7, 0);
+
+    switchOutPortMood(LDM8x8_LD_X_0, 0);
+    switchOutPortMood(LDM8x8_LD_X_1, 0);
+    switchOutPortMood(LDM8x8_LD_X_2, 0);
+    switchOutPortMood(LDM8x8_LD_X_3, 0);
+    switchOutPortMood(LDM8x8_LD_X_4, 0);
+    switchOutPortMood(LDM8x8_LD_X_5, 0);
+    switchOutPortMood(LDM8x8_LD_X_6, 0);
+    switchOutPortMood(LDM8x8_LD_X_7, 0);
+
+    if (line[0] == 0) { switchOutPortMood(LDM8x8_LD_X_0, 1); }
+    if (line[1] == 0) { switchOutPortMood(LDM8x8_LD_X_1, 1); }
+    if (line[2] == 0) { switchOutPortMood(LDM8x8_LD_X_2, 1); }
+    if (line[3] == 0) { switchOutPortMood(LDM8x8_LD_X_3, 1); }
+    if (line[4] == 0) { switchOutPortMood(LDM8x8_LD_X_4, 1); }
+    if (line[5] == 0) { switchOutPortMood(LDM8x8_LD_X_5, 1); }
+    if (line[6] == 0) { switchOutPortMood(LDM8x8_LD_X_6, 1); }
+    if (line[7] == 0) { switchOutPortMood(LDM8x8_LD_X_7, 1); }
+
+    if (coord_y == 0) { switchOutPortMood(LDM8x8_LD_Y_0, 1); }
+    else if (coord_y == 1) { switchOutPortMood(LDM8x8_LD_Y_1, 1); }
+    else if (coord_y == 2) { switchOutPortMood(LDM8x8_LD_Y_2, 1); }
+    else if (coord_y == 3) { switchOutPortMood(LDM8x8_LD_Y_3, 1); }
+    else if (coord_y == 4) { switchOutPortMood(LDM8x8_LD_Y_4, 1); }
+    else if (coord_y == 5) { switchOutPortMood(LDM8x8_LD_Y_5, 1); }
+    else if (coord_y == 6) { switchOutPortMood(LDM8x8_LD_Y_6, 1); }
+    else if (coord_y == 7) { switchOutPortMood(LDM8x8_LD_Y_7, 1); }
+}
+
+
 void switchOutPortMood(uint32_t id, int mood)
 {
     void* typePort = 0;
@@ -803,66 +640,89 @@ void switchOutPortMood(uint32_t id, int mood)
 
     switch(id)
     {
-        case A_INDICATOR_ID_PORT:
-            typePort = GPIOB;
-            port = LL_GPIO_PIN_15;
-            break;
-
-        case B_INDICATOR_ID_PORT:
-            typePort = GPIOC;
-            port = LL_GPIO_PIN_7;
-            break;
-
-        case C_INDICATOR_ID_PORT:
+        //-----------------------------------
+        //ld matrix 8x8
+        case LDM8x8_LD_X_7:
             typePort = GPIOA;
-            port = LL_GPIO_PIN_11;
+            port = LL_GPIO_PIN_1;
             break;
 
-        case D_INDICATOR_ID_PORT:
+        case LDM8x8_LD_X_6:
             typePort = GPIOA;
-            port = LL_GPIO_PIN_9;
+            port = LL_GPIO_PIN_2;
             break;
 
-        case E_INDICATOR_ID_PORT:
+        case LDM8x8_LD_X_5:
             typePort = GPIOA;
-            port = LL_GPIO_PIN_8;
+            port = LL_GPIO_PIN_3;
             break;
 
-        case F_INDICATOR_ID_PORT:
-            typePort = GPIOC;
+        case LDM8x8_LD_X_4:
+            typePort = GPIOF;
+            port = LL_GPIO_PIN_4;
+            break;
+
+        case LDM8x8_LD_X_3:
+            typePort = GPIOF;
+            port = LL_GPIO_PIN_5;
+            break;
+
+        case LDM8x8_LD_X_2:
+            typePort = GPIOA;
+            port = LL_GPIO_PIN_4;
+            break;
+
+        case LDM8x8_LD_X_1:
+            typePort = GPIOA;
+            port = LL_GPIO_PIN_5;
+            break;
+
+        case LDM8x8_LD_X_0:
+            typePort = GPIOA;
             port = LL_GPIO_PIN_6;
             break;
 
-        case G_INDICATOR_ID_PORT:
+        case LDM8x8_LD_Y_3:
             typePort = GPIOA;
-            port = LL_GPIO_PIN_12;
+            port = LL_GPIO_PIN_7;
             break;
 
-        case DP_INDICATOR_ID_PORT:
-            typePort = GPIOA;
-            port = LL_GPIO_PIN_10;
+        case LDM8x8_LD_Y_2:
+            typePort = GPIOC;
+            port = LL_GPIO_PIN_4;
             break;
 
-        case ANODE1_INDICATOR_ID_PORT:
+        case LDM8x8_LD_Y_1:
             typePort = GPIOC;
             port = LL_GPIO_PIN_5;
             break;
 
-        case ANODE2_INDICATOR_ID_PORT:
+        case LDM8x8_LD_Y_0:
             typePort = GPIOB;
             port = LL_GPIO_PIN_0;
             break;
 
-        case ANODE3_INDICATOR_ID_PORT:
+        case LDM8x8_LD_Y_4:
             typePort = GPIOB;
             port = LL_GPIO_PIN_1;
             break;
 
-        case ANODE4_INDICATOR_ID_PORT:
+        case LDM8x8_LD_Y_5:
             typePort = GPIOB;
             port = LL_GPIO_PIN_2;
             break;
+
+        case LDM8x8_LD_Y_6:
+            typePort = GPIOB;
+            port = LL_GPIO_PIN_10;
+            break;
+
+        case LDM8x8_LD_Y_7:
+            typePort = GPIOB;
+            port = LL_GPIO_PIN_11;
+            break;
     }
+
 
     if (mood == 0) {
         LL_GPIO_ResetOutputPin(typePort, port);
