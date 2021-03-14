@@ -55,8 +55,8 @@ struct ezgPlayerPlatform
  *   global variables
  *
  ***/
-#define EZG_MAX_BALLS  20
-#define EZG_TIME_BETWEEN_SPAWN 2
+#define EZG_MAX_BALLS  50
+#define EZG_TIME_BETWEEN_SPAWN 0.03
 
 struct ezgBall           g_balls[EZG_MAX_BALLS];
 size_t                   g_curBallsCount = 0;
@@ -208,10 +208,14 @@ void spawnBall()
         return;
     }
 
-    g_balls[g_curBallsCount].position.x = rand() % EZG_DISPLAY_SIZE_X;
+
+    do {
+        g_balls[g_curBallsCount].position.x = rand() % 10;
+    } while(g_balls[g_curBallsCount].position.x >= EZG_DISPLAY_SIZE_X);
+
     g_balls[g_curBallsCount].position.y = 0.f;
     g_balls[g_curBallsCount].coin = 2;
-    g_balls[g_curBallsCount].speed = 1;
+    g_balls[g_curBallsCount].speed = 10;
     g_balls[g_curBallsCount].alive = 1;
 
     g_curBallsCount++;
