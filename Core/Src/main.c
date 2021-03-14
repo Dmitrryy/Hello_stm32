@@ -178,7 +178,7 @@ int main(void)
   {
       //display_num = TIM2->CNT;
 
-      display_num = LL_TIM_GetCounter(TIM2);
+      const uint32_t encCount = LL_TIM_GetCounter(TIM2);
 
 
       //display_num = TIM2->CNT;
@@ -187,11 +187,13 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+    ezgSetPlayerPosition((80.f - encCount) / 10.f);
+
     ezgUpdate(dt);
 
     ldm8x8IndicateMatrix(ezgGetDisplayMatrix());
 
-    indicatorDisplay(display_num);
+    indicatorDisplay(ezgGetCoins());
 
   }
   /* USER CODE END 3 */
@@ -291,7 +293,7 @@ static void MX_TIM2_Init(void)
   LL_TIM_IC_SetPolarity(TIM2, LL_TIM_CHANNEL_CH2, LL_TIM_IC_POLARITY_RISING);
   TIM_InitStruct.Prescaler = 0;
   TIM_InitStruct.CounterMode = LL_TIM_COUNTERMODE_DOWN;
-  TIM_InitStruct.Autoreload = 300;
+  TIM_InitStruct.Autoreload = 80;
   TIM_InitStruct.ClockDivision = LL_TIM_CLOCKDIVISION_DIV1;
   LL_TIM_Init(TIM2, &TIM_InitStruct);
   LL_TIM_EnableARRPreload(TIM2);

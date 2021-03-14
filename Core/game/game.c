@@ -39,6 +39,7 @@ struct ezgBall
 struct ezgPlayerPlatform
 {
     struct ezgFPair position;
+    int             width;
     int             coins;
 };
 /***
@@ -56,7 +57,7 @@ struct ezgPlayerPlatform
  *
  ***/
 #define EZG_MAX_BALLS  50
-#define EZG_TIME_BETWEEN_SPAWN 0.03
+#define EZG_TIME_BETWEEN_SPAWN 1
 
 struct ezgBall           g_balls[EZG_MAX_BALLS];
 size_t                   g_curBallsCount = 0;
@@ -97,13 +98,13 @@ void clearDisplay    ();
 
 void displayEntities();
 void displayBall    (struct ezgBall ball);
-void displayPlayer  (int** matrix, size_t x_size, size_t y_size, struct ezgPlayerPlatform); // TODO
+void displayPlayer  (struct ezgPlayerPlatform);
 
 void updateBall  (struct ezgBall* ball, float dt);
 void spawnBall   ();
 void updatePlayer(struct ezgPlayerPlatform* player, float dt); //TODO
 
-int checkIntersectionBallPlayer(struct ezgBall ball, struct ezgPlayerPlatform player); //TODO
+int checkIntersectionBallPlayer(struct ezgBall ball, struct ezgPlayerPlatform player);
 /***
  *
  *   end of helper prototypes
@@ -134,6 +135,7 @@ void ezgStart()
     g_player.coins = 0;
     g_player.position.x = EZG_DISPLAY_SIZE_X / 2.f - 1;
     g_player.position.y = EZG_DISPLAY_SIZE_Y - 1;
+    g_player.width = 4;
 
     g_gameTime = 0;
 }
@@ -159,6 +161,23 @@ void ezgUpdate (float dt)
             updateBall(g_balls + i, dt);
         }
 
+
+        for (size_t i = 0; i < g_curBallsCount; ++i)
+        {
+            if (checkIntersectionBallPlayer(g_balls[i], g_player))
+            {
+                g_balls[i].alive = 0;
+                g_player.coins += g_balls[i].coin;
+            }
+        }
+
+
+        if (g_gameTime + dt >= g_timeNextSpawn) {
+            spawnBall();
+            g_timeNextSpawn += EZG_TIME_BETWEEN_SPAWN;
+        }
+
+
         for(size_t i = 0; i < g_curBallsCount; ++i)
         {
             if(!g_balls[i].alive) {
@@ -167,22 +186,14 @@ void ezgUpdate (float dt)
                 i--;
             }
         }
-
-        //TODO
-/*        for (size_t i = 0; i < g_curBallsCount; ++i)
-        {
-            checkIntersectionBallPlayer(g_balls + 1)
-        }*/
-
-        if (g_gameTime + dt >= g_timeNextSpawn) {
-            spawnBall();
-            g_timeNextSpawn += EZG_TIME_BETWEEN_SPAWN;
-        }
     }
     g_gameTime += dt;
 }
 
-void ezgSetPlayerPosition (float new_x);
+void ezgSetPlayerPosition (float new_x)
+{
+    g_player.position.x = new_x;
+}
 
 
 /****************************************************************************************
@@ -215,7 +226,7 @@ void spawnBall()
 
     g_balls[g_curBallsCount].position.y = 0.f;
     g_balls[g_curBallsCount].coin = 2;
-    g_balls[g_curBallsCount].speed = 10;
+    g_balls[g_curBallsCount].speed = 4;
     g_balls[g_curBallsCount].alive = 1;
 
     g_curBallsCount++;
@@ -231,7 +242,6 @@ void updateBall (struct ezgBall* ball, float dt)
         ball->alive = 0;
     }
 
-    //TODO position > 8;
 }
 
 
@@ -242,19 +252,51 @@ void displayEntities ()
         displayBall(g_balls[i]);
     }
 
-    //TODO display player
+    displayPlayer(g_player);
 }
 
 
 void displayBall (struct ezgBall ball)
 {
-    if (ball.position.x < 0 || ball.position.x >= EZG_DISPLAY_SIZE_X
-     || ball.position.y < 0 || ball.position.y >= EZG_DISPLAY_SIZE_Y)
+    if (ball.position.x < 0 || ball.position.x >= EZG_DISPLAY_SIZE_X ||
+        ball.position.y < 0 || ball.position.y >= EZG_DISPLAY_SIZE_Y)
     {
         return ;
     }
 
     g_display[(int)ball.position.y][(int)ball.position.x] = 1;
+}
+
+
+void displayPlayer  (struct ezgPlayerPlatform player)
+{
+    if (player.position.x < 0 || player.position.x >= EZG_DISPLAY_SIZE_X  ||
+        player.position.y < 0 || player.position.y >= EZG_DISPLAY_SIZE_Y)
+    {
+        return ;
+    }
+    for (int i = 0; i < player.width; ++i)
+    {
+        g_display[(int)player.position.y][((int)player.position.x + i) % EZG_DISPLAY_SIZE_X] = 1;
+    }
+}
+
+
+int checkIntersectionBallPlayer(struct ezgBall ball, struct ezgPlayerPlatform player)
+{
+    int res = 0;
+    if ((int)ball.position.y == (int)player.position.y)
+    {
+        for (int i = 0; i < player.width; ++i)
+        {
+            if ((int)ball.position.x == ((int)player.position.x + i) % EZG_DISPLAY_SIZE_X) {
+                res = 1;
+                break;
+            }
+        }
+    }
+
+    return res;
 }
 /***
  *
