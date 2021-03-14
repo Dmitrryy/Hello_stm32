@@ -55,7 +55,7 @@
 volatile uint64_t counter_top = 0;
 
 volatile uint64_t display_num = 0;
-
+volatile int      g_IIEnable = 0;
 volatile float    time = 0;
 
 #define A_INDICATOR_ID_PORT 11
@@ -174,27 +174,29 @@ int main(void)
   time = 0;
   float storeTime = 0;
   int dir = 0;
+  int** frameBuffer = ezgGetDisplayMatrix();
   while (1)
   {
-      //display_num = TIM2->CNT;
-
       const uint32_t encCount = LL_TIM_GetCounter(TIM2);
 
-
-      //display_num = TIM2->CNT;
       float dt = time - storeTime;
       storeTime = time;
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-    ezgSetPlayerPosition((80.f - encCount) / 10.f);
-
+    if (g_IIEnable) {
+        ezgIIPlay(frameBuffer);
+    }
+    else {
+        ezgSetPlayerPosition((80.f - encCount) / 10.f);
+    }
     ezgUpdate(dt);
 
-    ldm8x8IndicateMatrix(ezgGetDisplayMatrix());
+    frameBuffer =  ezgGetDisplayMatrix();
+
+    ldm8x8IndicateMatrix(frameBuffer);
 
     indicatorDisplay(ezgGetCoins());
-
   }
   /* USER CODE END 3 */
 }
@@ -1024,6 +1026,11 @@ void switchOutPortMood(uint32_t id, int mood)
     }
 }
 
+
+void EXTI0_1_CallBack()
+{
+    g_IIEnable ^= 1;
+}
 
 /* USER CODE END 4 */
 

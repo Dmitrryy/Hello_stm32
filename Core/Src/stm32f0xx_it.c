@@ -49,6 +49,7 @@
 /* USER CODE BEGIN PFP */
 
 void indicatorDisplay(uint16_t num);
+void EXTI0_1_CallBack();
 
 /* USER CODE END PFP */
 
@@ -164,7 +165,7 @@ void EXTI0_1_IRQHandler(void)
     LL_EXTI_ClearFlag_0_31(LL_EXTI_LINE_0);
     /* USER CODE BEGIN LL_EXTI_LINE_0 */
 
-      display_num++;
+      EXTI0_1_CallBack();
 
     /* USER CODE END LL_EXTI_LINE_0 */
   }

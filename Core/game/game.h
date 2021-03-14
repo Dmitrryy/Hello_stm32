@@ -27,6 +27,8 @@ void ezgStart();
 
 enum ezgGameStatus ezgGetStatus();
 size_t             ezgGetCoins ();
+int                ezgGetPlayerWidth();
+size_t             ezgGetSlips();
 
 
 int** ezgGetDisplayMatrix();
@@ -35,3 +37,5 @@ void ezgUpdate(float dt);
 void ezgSetPlayerPosition(float new_x);
 
 
+
+void ezgIIPlay(int display[EZG_DISPLAY_SIZE_Y][EZG_DISPLAY_SIZE_X]);

@@ -58,14 +58,19 @@ struct ezgPlayerPlatform
  ***/
 #define EZG_MAX_BALLS  50
 #define EZG_TIME_BETWEEN_SPAWN 1
+#define EZG_SPEED_MAX       6
 
 struct ezgBall           g_balls[EZG_MAX_BALLS];
 size_t                   g_curBallsCount = 0;
+
+size_t                   g_slips = 0;
 
 struct ezgPlayerPlatform g_player = {};
 
 float                    g_gameTime = 0;
 float                    g_timeNextSpawn = 1;
+
+float                    g_speedGame = 1;
 
 enum ezgGameStatus       g_status = EZG_STATUS_NOT_STARTED;
 
@@ -126,6 +131,18 @@ size_t ezgGetCoins()
 }
 
 
+int ezgGetPlayerWidth()
+{
+    return g_player.width;
+}
+
+
+size_t ezgGetSlips()
+{
+    return g_slips;
+}
+
+
 void ezgStart()
 {
     g_status = EZG_STATUS_GAME;
@@ -135,9 +152,16 @@ void ezgStart()
     g_player.coins = 0;
     g_player.position.x = EZG_DISPLAY_SIZE_X / 2.f - 1;
     g_player.position.y = EZG_DISPLAY_SIZE_Y - 1;
-    g_player.width = 4;
+    g_player.width = 3;
 
     g_gameTime = 0;
+    g_timeNextSpawn = 1;
+
+    clearDisplay();
+
+    g_speedGame = 1;
+
+    g_slips = 0;
 }
 
 
@@ -152,6 +176,7 @@ int** ezgGetDisplayMatrix()
 
 void ezgUpdate (float dt)
 {
+    dt *= g_speedGame;
     if (g_status == EZG_STATUS_GAME)
     {
         //updatePlayer(&g_player, dt); //TODO
@@ -168,6 +193,8 @@ void ezgUpdate (float dt)
             {
                 g_balls[i].alive = 0;
                 g_player.coins += g_balls[i].coin;
+                if (g_speedGame < EZG_SPEED_MAX)
+                    g_speedGame += 0.05f;
             }
         }
 
@@ -218,6 +245,8 @@ void spawnBall()
     if (g_curBallsCount >= EZG_MAX_BALLS) {
         return;
     }
+    static const float speeds[10] = { 2, 2.5f, 3.f, 3.5f, 4.f, 4.f, 4.f, 4.5f, 5.f, 5.5f };
+    static const size_t available_speeds = 10;
 
 
     do {
@@ -226,7 +255,7 @@ void spawnBall()
 
     g_balls[g_curBallsCount].position.y = 0.f;
     g_balls[g_curBallsCount].coin = 2;
-    g_balls[g_curBallsCount].speed = 4;
+    g_balls[g_curBallsCount].speed = speeds[rand() % available_speeds];
     g_balls[g_curBallsCount].alive = 1;
 
     g_curBallsCount++;
@@ -240,6 +269,7 @@ void updateBall (struct ezgBall* ball, float dt)
     if(ball->position.y >= EZG_DISPLAY_SIZE_Y)
     {
         ball->alive = 0;
+        g_slips++;
     }
 
 }
@@ -270,8 +300,8 @@ void displayBall (struct ezgBall ball)
 
 void displayPlayer  (struct ezgPlayerPlatform player)
 {
-    if (player.position.x < 0 || player.position.x >= EZG_DISPLAY_SIZE_X  ||
-        player.position.y < 0 || player.position.y >= EZG_DISPLAY_SIZE_Y)
+    if ((int)player.position.x < 0 || (int)player.position.x >= EZG_DISPLAY_SIZE_X  ||
+        (int)player.position.y < 0 || (int)player.position.y >= EZG_DISPLAY_SIZE_Y)
     {
         return ;
     }
